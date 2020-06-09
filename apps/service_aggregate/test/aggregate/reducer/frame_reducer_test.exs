@@ -4,12 +4,20 @@ defmodule Aggregate.Reducer.Frame do
   alias Aggregate.Reducer.FrameReducer
 
   setup do
-    reducer = FrameReducer.new([
-      sample_image_path: ["SampleImage"],
-      classification_path: ["Classification"]
-    ])
+    sample_image_path = ["SampleImage"]
+    classification_path = ["Classification"]
 
-    [reducer: reducer]
+    reducer =
+      FrameReducer.new(
+        sample_image_path: sample_image_path,
+        classification_path: classification_path
+      )
+
+    %{
+      sample_image_path: sample_image_path,
+      classification_path: classification_path,
+      reducer: reducer
+    }
   end
 
   describe "init/2" do
@@ -27,7 +35,12 @@ defmodule Aggregate.Reducer.Frame do
   end
 
   describe "reduce/2" do
-    test "when reducer is empty and a valid event is published, a new frame is added to reducer", %{reducer: reducer} do
+    test "when reducer is empty and a valid event is published, a new frame is added to reducer",
+         %{
+           sample_image_path: sample_image_path,
+           classification_path: classification_path,
+           reducer: reducer
+         } do
       event = %{
         "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
         "Classification" => ["person"],
@@ -45,11 +58,18 @@ defmodule Aggregate.Reducer.Frame do
       output = Aggregate.Reducer.reduce(reducer, event)
 
       assert output == %FrameReducer{
+               sample_image_path: sample_image_path,
+               classification_path: classification_path,
                frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}
              }
     end
 
-    test "when reducer is not empty and a valid event is published, a new frame is added to reducer", %{reducer: reducer} do
+    test "when reducer is not empty and a valid event is published, a new frame is added to reducer",
+         %{
+           sample_image_path: sample_image_path,
+           classification_path: classification_path,
+           reducer: reducer
+         } do
       event = %{
         "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
         "Classification" => ["person"],
@@ -81,6 +101,8 @@ defmodule Aggregate.Reducer.Frame do
       output = Aggregate.Reducer.reduce(reducer, event) |> Aggregate.Reducer.reduce(second_event)
 
       assert output == %FrameReducer{
+               sample_image_path: sample_image_path,
+               classification_path: classification_path,
                frame_people_count: %{
                  "/ingestion/00AA00AA00AA00AA/frame/246" => 1,
                  "/ingestion/00AA00AA00AA00AA/frame/247" => 1
@@ -88,7 +110,11 @@ defmodule Aggregate.Reducer.Frame do
              }
     end
 
-    test "multiple events for same frame", %{reducer: reducer} do
+    test "multiple events for same frame", %{
+      sample_image_path: sample_image_path,
+      classification_path: classification_path,
+      reducer: reducer
+    } do
       event = %{
         "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
         "Classification" => ["person"],
@@ -120,13 +146,19 @@ defmodule Aggregate.Reducer.Frame do
       output = Aggregate.Reducer.reduce(reducer, event) |> Aggregate.Reducer.reduce(second_event)
 
       assert output == %FrameReducer{
+               sample_image_path: sample_image_path,
+               classification_path: classification_path,
                frame_people_count: %{
                  "/ingestion/00AA00AA00AA00AA/frame/246" => 2
                }
              }
     end
 
-    test "not a person event", %{reducer: reducer} do
+    test "not a person event", %{
+      sample_image_path: sample_image_path,
+      classification_path: classification_path,
+      reducer: reducer
+    } do
       event = %{
         "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
         "Classification" => ["not a person"],
@@ -143,9 +175,7 @@ defmodule Aggregate.Reducer.Frame do
 
       output = Aggregate.Reducer.reduce(reducer, event)
 
-      assert output == %FrameReducer{
-               frame_people_count: %{}
-             }
+      assert output == reducer
     end
   end
 end

@@ -44,8 +44,9 @@ defmodule Aggregate.Feed.FlowTest do
                 reducers: reducers}
              )
 
-    events = [
-      %{
+    events =
+      [
+        %{
           "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
           "Classification" => ["person"],
           "Confidence" => 0.761,
@@ -57,13 +58,15 @@ defmodule Aggregate.Feed.FlowTest do
           "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
           "Sequence" => 0,
           "Timestamp" => "2020-06-08T18:02:56.675309Z"
-      }
-    ]
-    |> Enum.map(&to_elsa_message/1)
+        }
+      ]
+      |> Enum.map(&to_elsa_message/1)
 
     Aggregate.Simple.Producer.inject_events(events)
 
-    assert_receive {:event, %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}}}, 3_000
+    assert_receive {:event,
+                    %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}}},
+                   3_000
 
     # events = [
     #   to_elsa_message(%{"name" => "mel", "count" => 4}),
