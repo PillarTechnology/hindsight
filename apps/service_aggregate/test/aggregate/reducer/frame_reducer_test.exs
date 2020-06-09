@@ -19,21 +19,130 @@ defmodule Aggregate.Reducer.Frame do
       }
 
       output = Aggregate.Reducer.init(reducer, t)
-      IO.inspect(output)
       assert output.frame_people_count == Map.get(t, "frame_people_count")
     end
   end
 
-  # describe "it does the thing" do
-  #   test "reduces a stream of detected objects by frame" do
-  #     File.stream!("./test/support/output.txt")
-  #     |> Enum.map(fn x -> Jason.decode!(x, keys: :atoms) end)
-  #     |> Enum.map(fn map -> Map.take(map, [:Classification, :SampleImage, :Timestamp, :BoundingBox]) end)
-  #     |> IO.inspect
-  #     # |> Enum.reduce(%{}, fn word, acc ->
-  #     #   Map.update(acc, word, 1, & &1 + 1)
-  #     # end)
-  #     # |> Enum.to_list()    end
-  #   end
-  # end
+  describe "reduce/2" do
+    test "when reducer is empty and a valid event is published, a new frame is added to reducer", %{reducer: reducer} do
+      event = %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539522",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T18:02:56.675309Z"
+      }
+
+      output = Aggregate.Reducer.reduce(reducer, event)
+
+      assert output == %FrameReducer{
+               frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}
+             }
+    end
+
+    test "when reducer is not empty and a valid event is published, a new frame is added to reducer", %{reducer: reducer} do
+      event = %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539522",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T18:02:56.675309Z"
+      }
+
+      second_event = %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539523",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/247",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/247/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T20:02:56.675309Z"
+      }
+
+      output = Aggregate.Reducer.reduce(reducer, event) |> Aggregate.Reducer.reduce(second_event)
+
+      assert output == %FrameReducer{
+               frame_people_count: %{
+                 "/ingestion/00AA00AA00AA00AA/frame/246" => 1,
+                 "/ingestion/00AA00AA00AA00AA/frame/247" => 1
+               }
+             }
+    end
+
+    test "multiple events for same frame", %{reducer: reducer} do
+      event = %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539522",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T18:02:56.675309Z"
+      }
+
+      second_event = %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539523",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T18:02:56.675309Z"
+      }
+
+      output = Aggregate.Reducer.reduce(reducer, event) |> Aggregate.Reducer.reduce(second_event)
+
+      assert output == %FrameReducer{
+               frame_people_count: %{
+                 "/ingestion/00AA00AA00AA00AA/frame/246" => 2
+               }
+             }
+    end
+
+    test "not a person event", %{reducer: reducer} do
+      event = %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["not a person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539522",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T18:02:56.675309Z"
+      }
+
+      output = Aggregate.Reducer.reduce(reducer, event)
+
+      assert output == %FrameReducer{
+               frame_people_count: %{}
+             }
+    end
+  end
 end
