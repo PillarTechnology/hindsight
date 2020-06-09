@@ -4,7 +4,10 @@ defmodule Aggregate.Reducer.Frame do
   alias Aggregate.Reducer.FrameReducer
 
   setup do
-    reducer = FrameReducer.new(%{})
+    reducer = FrameReducer.new([
+      sample_image_path: ["SampleImage"],
+      classification_path: ["Classification"]
+    ])
 
     [reducer: reducer]
   end

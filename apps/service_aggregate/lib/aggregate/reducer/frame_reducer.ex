@@ -1,8 +1,9 @@
 defmodule Aggregate.Reducer.FrameReducer do
-  defstruct [:frame_people_count]
+  defstruct [:sample_image_path, :classification_path, :frame_people_count]
 
-  def new(_opts) do
-    %__MODULE__{
+  def new(opts) do %__MODULE__{
+      sample_image_path: Keyword.fetch!(opts, :sample_image_path), 
+      classification_path: Keyword.fetch!(opts, :classification_path),
       frame_people_count: %{}
     }
   end
@@ -13,8 +14,9 @@ defmodule Aggregate.Reducer.FrameReducer do
     end
 
     def reduce(t, event) do
-      if Enum.any?(event["Classification"], fn x -> x == "person" end) do
-        frame = Map.get(event, "SampleImage")
+      IO.inspect(event, label: "Reduce event")
+      if Enum.any?(get_in(event, t.classification_path), fn x -> x == "person" end) do
+        frame = get_in(event, t.sample_image_path)
         new_frames = Map.update(t.frame_people_count, frame, 1, fn v -> v + 1 end)
         %{t | frame_people_count: new_frames}
       else

@@ -48,18 +48,19 @@ defmodule Aggregate.Feed.Flow do
     |> Flow.partition(window: window, stages: 1)
     |> Flow.reduce(fn -> State.get(state) end, &reduce/2)
     |> Flow.on_trigger(fn acc ->
-      case State.merge(state, acc) do
-        [] ->
-          {[], %{}}
-
-        changed_reducers ->
-          event =
-            changed_reducers
-            |> Enum.flat_map(&Aggregate.Reducer.to_event_fields/1)
-            |> Map.new()
-
-          {[event], %{}}
-      end
+      acc
+      # case State.merge(state, acc) do
+      #   [] ->
+      #     {[], %{}}
+      #
+      #   changed_reducers ->
+      #     event =
+      #       changed_reducers
+      #       |> Enum.flat_map(&Aggregate.Reducer.to_event_fields/1)
+      #       |> Map.new()
+      #
+      #     {[event], %{}}
+      # end
     end)
     |> Flow.into_specs(into_specs, flow_opts)
   catch

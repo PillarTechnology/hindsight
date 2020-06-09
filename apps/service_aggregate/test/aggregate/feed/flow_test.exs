@@ -31,8 +31,7 @@ defmodule Aggregate.Feed.FlowTest do
     subset_id = "sb1"
 
     reducers = [
-      Aggregate.Reducer.MinMax.new(path: [Access.key(:value), "count"]),
-      Aggregate.Reducer.LongestString.new(path: [Access.key(:value), "name"])
+      Aggregate.Reducer.FrameReducer.new(%{})
     ]
 
     assert {:ok, _pid} =
@@ -46,30 +45,42 @@ defmodule Aggregate.Feed.FlowTest do
              )
 
     events = [
-      to_elsa_message(%{"name" => "joe", "count" => 1}),
-      to_elsa_message(%{"name" => "john", "count" => 2})
+      %{
+          "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+          "Classification" => ["person"],
+          "Confidence" => 0.761,
+          "Context" => "00AA00AA00AA00AA",
+          "EventID" => "42539522",
+          "MessageType" => "1011",
+          "Module" => "4000",
+          "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
+          "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
+          "Sequence" => 0,
+          "Timestamp" => "2020-06-08T18:02:56.675309Z"
+      }
     ]
+    |> Enum.map(&to_elsa_message/1)
 
     Aggregate.Simple.Producer.inject_events(events)
 
-    assert_receive {:event, %{"min" => 1, "max" => 2, "longest_string" => 4}}, 3_000
+    assert_receive {:event, %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}}}, 3_000
 
-    events = [
-      to_elsa_message(%{"name" => "mel", "count" => 4}),
-      to_elsa_message(%{"name" => "john", "count" => 7})
-    ]
-
-    Aggregate.Simple.Producer.inject_events(events)
-
-    assert_receive {:event, %{"min" => 1, "max" => 7}}, 3_000
-
-    events = [
-      to_elsa_message(%{"name" => "bob", "count" => 5})
-    ]
-
-    Aggregate.Simple.Producer.inject_events(events)
-
-    refute_receive {:event, _}, 3_000
+    # events = [
+    #   to_elsa_message(%{"name" => "mel", "count" => 4}),
+    #   to_elsa_message(%{"name" => "john", "count" => 7})
+    # ]
+    #
+    # Aggregate.Simple.Producer.inject_events(events)
+    #
+    # assert_receive {:event, %{"min" => 1, "max" => 7}}, 3_000
+    #
+    # events = [
+    #   to_elsa_message(%{"name" => "bob", "count" => 5})
+    # ]
+    #
+    # Aggregate.Simple.Producer.inject_events(events)
+    #
+    # refute_receive {:event, _}, 3_000
   end
 
   test "gets it initial state from brook" do
