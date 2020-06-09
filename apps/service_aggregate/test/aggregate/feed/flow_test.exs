@@ -1,8 +1,11 @@
 defmodule Aggregate.Feed.FlowTest do
   use ExUnit.Case
+  use Placebo
   require Temp.Env
 
   import Definition, only: [identifier: 1]
+
+  alias Aggregate.TestHelpers.FrameEventGenerator
 
   @instance Aggregate.Application.instance()
 
@@ -23,10 +26,14 @@ defmodule Aggregate.Feed.FlowTest do
       Brook.Test.clear_view_state(@instance, "stats")
     end)
 
-    :ok
+    now = ~U[2020-06-09 18:03:06Z]
+    now_string = DateTime.to_iso8601(now)
+    allow(DateTime.utc_now(), return: now, meck_options: [:passthrough])
+
+    [now_string: now_string]
   end
 
-  test "aggregates message over a configured period and calls to configured reducers" do
+  test "aggregates message over a configured period and calls to configured reducers", %{now_string: now_string} do
     dataset_id = "ds1"
     subset_id = "sb1"
 
@@ -44,51 +51,25 @@ defmodule Aggregate.Feed.FlowTest do
                 reducers: reducers}
              )
 
-    events =
-      [
-        %{
-          "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-          "Classification" => ["person"],
-          "Confidence" => 0.761,
-          "Context" => "00AA00AA00AA00AA",
-          "EventID" => "42539522",
-          "MessageType" => "1011",
-          "Module" => "4000",
-          "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
-          "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
-          "Sequence" => 0,
-          "Timestamp" => "2020-06-08T18:02:56.675309Z"
-        }
-      ]
+    events = [246]
+      |> Enum.map(&FrameEventGenerator.generate/1)
       |> Enum.map(&to_elsa_message/1)
 
     Aggregate.Simple.Producer.inject_events(events)
 
     assert_receive(
-      {:event, %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}}},
+      {:event, %{timestamp: now_string, people_count: 1.0}},
       3_000
     )
 
-    more_events = [
-      %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539523",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/247",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/247/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T20:02:56.675309Z"
-      }
-    ] |> Enum.map(&to_elsa_message/1)
+    more_events = [247]
+      |> Enum.map(&FrameEventGenerator.generate/1)
+      |> Enum.map(&to_elsa_message/1)
 
     Aggregate.Simple.Producer.inject_events(more_events)
 
     assert_receive(
-      {:event, %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/247" => 1}}},
+      {:event, %{timestamp: now_string, people_count: 1.0}},
       3_000
     )
   end

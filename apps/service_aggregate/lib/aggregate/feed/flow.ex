@@ -48,7 +48,7 @@ defmodule Aggregate.Feed.Flow do
     |> Flow.partition(window: window, stages: 1)
     |> Flow.reduce(fn -> State.get(state) end, &reduce/2)
     |> Flow.on_trigger(fn acc ->
-      {acc, %{}}
+      {average_people_count(acc), %{}}
       # case State.merge(state, acc) do
       #   [] ->
       #     {[], %{}}
@@ -75,5 +75,13 @@ defmodule Aggregate.Feed.Flow do
     |> Enum.map(fn reducer ->
       Aggregate.Reducer.reduce(reducer, event)
     end)
+  end
+
+  defp average_people_count(acc) do
+    first_acc = List.first(acc)
+    map = first_acc.frame_people_count
+    total = Map.values(map) |> Enum.reduce(0, fn x, acc -> x + acc end)
+    time = DateTime.utc_now() |> DateTime.to_iso8601
+    [%{timestamp: time, people_count: (total / Enum.count(map))}]
   end
 end
