@@ -48,7 +48,7 @@ defmodule Aggregate.Feed.Flow do
     |> Flow.partition(window: window, stages: 1)
     |> Flow.reduce(fn -> State.get(state) end, &reduce/2)
     |> Flow.on_trigger(fn acc ->
-      acc
+      {acc, %{}}
       # case State.merge(state, acc) do
       #   [] ->
       #     {[], %{}}

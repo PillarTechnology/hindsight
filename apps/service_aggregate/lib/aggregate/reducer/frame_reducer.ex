@@ -10,8 +10,9 @@ defmodule Aggregate.Reducer.FrameReducer do
   end
 
   defimpl Aggregate.Reducer do
-    def init(t, stats) do
-      %{t | frame_people_count: Map.get(stats, "frame_people_count")}
+    def init(t, _stats) do
+      # %{t | frame_people_count: Map.get(stats, "frame_people_count")}
+      t
     end
 
     def reduce(t, event) do

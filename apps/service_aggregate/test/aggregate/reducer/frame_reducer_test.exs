@@ -2,6 +2,7 @@ defmodule Aggregate.Reducer.Frame do
   use ExUnit.Case
 
   alias Aggregate.Reducer.FrameReducer
+  alias Aggregate.TestHelpers.FrameEventGenerator
 
   setup do
     sample_image_path = ["SampleImage"]
@@ -41,19 +42,7 @@ defmodule Aggregate.Reducer.Frame do
            classification_path: classification_path,
            reducer: reducer
          } do
-      event = %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539522",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T18:02:56.675309Z"
-      }
+      event = FrameEventGenerator.generate(246)
 
       output = Aggregate.Reducer.reduce(reducer, event)
 
@@ -70,33 +59,8 @@ defmodule Aggregate.Reducer.Frame do
            classification_path: classification_path,
            reducer: reducer
          } do
-      event = %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539522",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T18:02:56.675309Z"
-      }
-
-      second_event = %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539523",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/247",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/247/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T20:02:56.675309Z"
-      }
+      event = FrameEventGenerator.generate(246)
+      second_event = FrameEventGenerator.generate(247)
 
       output = Aggregate.Reducer.reduce(reducer, event) |> Aggregate.Reducer.reduce(second_event)
 
@@ -115,33 +79,8 @@ defmodule Aggregate.Reducer.Frame do
       classification_path: classification_path,
       reducer: reducer
     } do
-      event = %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539522",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T18:02:56.675309Z"
-      }
-
-      second_event = %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539523",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T18:02:56.675309Z"
-      }
+      event = FrameEventGenerator.generate(246)
+      second_event = FrameEventGenerator.generate(246)
 
       output = Aggregate.Reducer.reduce(reducer, event) |> Aggregate.Reducer.reduce(second_event)
 
@@ -154,24 +93,8 @@ defmodule Aggregate.Reducer.Frame do
              }
     end
 
-    test "not a person event", %{
-      sample_image_path: sample_image_path,
-      classification_path: classification_path,
-      reducer: reducer
-    } do
-      event = %{
-        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
-        "Classification" => ["not a person"],
-        "Confidence" => 0.761,
-        "Context" => "00AA00AA00AA00AA",
-        "EventID" => "42539522",
-        "MessageType" => "1011",
-        "Module" => "4000",
-        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/246",
-        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/246/[0.5049,0.0129,0.5268,0.1108]",
-        "Sequence" => 0,
-        "Timestamp" => "2020-06-08T18:02:56.675309Z"
-      }
+    test "not a person event", %{reducer: reducer} do
+      event = FrameEventGenerator.generate(246, %{classification: ["hot dog"]})
 
       output = Aggregate.Reducer.reduce(reducer, event)
 

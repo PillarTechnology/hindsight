@@ -31,7 +31,7 @@ defmodule Aggregate.Feed.FlowTest do
     subset_id = "sb1"
 
     reducers = [
-      Aggregate.Reducer.FrameReducer.new(%{})
+      Aggregate.Reducer.FrameReducer.new(sample_image_path: [Access.key(:value), "SampleImage"], classification_path: [Access.key(:value), "Classification"])
     ]
 
     assert {:ok, _pid} =
@@ -64,26 +64,33 @@ defmodule Aggregate.Feed.FlowTest do
 
     Aggregate.Simple.Producer.inject_events(events)
 
-    assert_receive {:event,
-                    %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}}},
-                   3_000
+    assert_receive(
+      {:event, %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/246" => 1}}},
+      3_000
+    )
 
-    # events = [
-    #   to_elsa_message(%{"name" => "mel", "count" => 4}),
-    #   to_elsa_message(%{"name" => "john", "count" => 7})
-    # ]
-    #
-    # Aggregate.Simple.Producer.inject_events(events)
-    #
-    # assert_receive {:event, %{"min" => 1, "max" => 7}}, 3_000
-    #
-    # events = [
-    #   to_elsa_message(%{"name" => "bob", "count" => 5})
-    # ]
-    #
-    # Aggregate.Simple.Producer.inject_events(events)
-    #
-    # refute_receive {:event, _}, 3_000
+    more_events = [
+      %{
+        "BoundingBox" => [0.5049, 0.0129, 0.5268, 0.1108],
+        "Classification" => ["person"],
+        "Confidence" => 0.761,
+        "Context" => "00AA00AA00AA00AA",
+        "EventID" => "42539523",
+        "MessageType" => "1011",
+        "Module" => "4000",
+        "SampleImage" => "/ingestion/00AA00AA00AA00AA/frame/247",
+        "SampleObject" => "/ingestion/00AA00AA00AA00AA/frame/247/[0.5049,0.0129,0.5268,0.1108]",
+        "Sequence" => 0,
+        "Timestamp" => "2020-06-08T20:02:56.675309Z"
+      }
+    ] |> Enum.map(&to_elsa_message/1)
+
+    Aggregate.Simple.Producer.inject_events(more_events)
+
+    assert_receive(
+      {:event, %{frame_people_count: %{"/ingestion/00AA00AA00AA00AA/frame/247" => 1}}},
+      3_000
+    )
   end
 
   test "gets it initial state from brook" do
