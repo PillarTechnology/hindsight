@@ -7,8 +7,8 @@ defmodule Aggregate.Feed.Flow do
   import Definition, only: [identifier: 2]
   alias Aggregate.Feed.Flow.State
 
-  getter(:window_limit, default: 5)
-  getter(:window_unit, default: :minute)
+  getter(:window_limit, default: 30)
+  getter(:window_unit, default: :second)
 
   @type init_opts :: [
           name: GenServer.name(),
@@ -42,7 +42,7 @@ defmodule Aggregate.Feed.Flow do
 
     reducers = Enum.map(reducers, &Aggregate.Reducer.init(&1, stats))  #suspect
     IO.inspect(reducers, label: "what my reducers is?????")
-    {:ok, state} = State.start_link(reducers: reducers)
+    {:ok, state} = State.start_link(reducers: reducers)   #suspect
 
     from_specs
     |> Flow.from_specs()
@@ -55,6 +55,7 @@ defmodule Aggregate.Feed.Flow do
       else
         {average_people_count(acc), %{}}
       end
+      |> IO.inspect(label: "on trigger")
       # case State.merge(state, acc) do
       #   [] ->
       #     {[], %{}}

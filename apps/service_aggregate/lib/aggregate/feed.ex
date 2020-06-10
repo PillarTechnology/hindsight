@@ -40,7 +40,7 @@ defmodule Aggregate.Feed do
        into_specs: [
          {Aggregate.Feed.Consumer, dataset_id: extract.dataset_id, subset_id: extract.subset_id}
        ],
-       reducers: [Aggregate.Reducer.FrameReducer.new(classification_path: "Classification", sample_image_path: "SampleImage")]}
+       reducers: [Aggregate.Reducer.FrameReducer.new(classification_path: ["Classification"], sample_image_path: ["SampleImage"])]}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

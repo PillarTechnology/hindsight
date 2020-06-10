@@ -92,8 +92,8 @@ defmodule Aggregate.Feed.Producer do
           dlq: dlq()
         }
       )
-
-    {:ok, source_pid} = Source.start_link(extract.destination, context)
+    IO.inspect(extract.destination, label: "starting up producer with destination: ")
+    {:ok, source_pid} = Source.start_link(extract.source, context)   #TODO: make sure this was the correct change
 
     Logger.debug(fn ->
       "#{__MODULE__}(#{inspect(self())}): started source : #{inspect(source_pid)}"
