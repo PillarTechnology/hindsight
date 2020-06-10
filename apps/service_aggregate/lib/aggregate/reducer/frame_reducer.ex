@@ -12,6 +12,7 @@ defmodule Aggregate.Reducer.FrameReducer do
   defimpl Aggregate.Reducer do
     def init(t, _stats) do
       # %{t | frame_people_count: Map.get(stats, "frame_people_count")}
+      IO.inspect(t, label: "frame_reducer.ex: init")
       t
     end
 
@@ -23,10 +24,11 @@ defmodule Aggregate.Reducer.FrameReducer do
       else
         t
       end
+      |> IO.inspect(label: "frame_redicer.ex: reduce")
     end
 
-    def merge(_t1, _t2) do
-      %{}
+    def merge(t1, _t2) do
+      t1
     end
 
     def to_event_fields(_t) do
