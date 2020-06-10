@@ -29,9 +29,6 @@ defmodule Aggregate do
             decoder: nil,
             destination: nil,
             reducers: nil
-
-  @impl Definition
-  def on_new(aggregate), do: Ok.ok(aggregate)
 end
 
 defmodule Aggregate.V1 do
@@ -48,7 +45,7 @@ defmodule Aggregate.V1 do
       source: impl_of(Source),
       decoder: impl_of(Decoder),
       destination: impl_of(Destination),
-      reducers: of_struct(List.Impl)
+      reducers: spec(is_list())
     })
   end
 end

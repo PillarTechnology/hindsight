@@ -20,7 +20,8 @@ defmodule Events do
     {"dataset:delete", Delete},
     {"transform:define", Transform},
     {"profile:update", Profile.Update},
-    {"aggregate:update", Aggregate.Update}
+    {"aggregate:update", Aggregate.Update},
+    {"aggregate:start", Aggregate}
   ]
 
   Enum.map(@events, fn {type, struct_module} ->

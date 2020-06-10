@@ -5,21 +5,21 @@ defmodule Aggregate.Event.Handler do
   use Brook.Event.Handler
   require Logger
 
-  import Events, only: [extract_start: 0, aggregate_update: 0]
+  import Events, only: [aggregate_start: 0, aggregate_update: 0]
   import Definition, only: [identifier: 1]
 
   def handle_event(%Brook.Event{
-        type: extract_start(),
-        data: %Extract{destination: %Kafka.Topic{}} = extract
+        type: aggregate_start(),
+        data: %Aggregate{destination: %Kafka.Topic{}} = aggregate
       }) do
     Logger.debug(fn ->
-      "#{__MODULE__}: Received event #{extract_start()}: #{inspect(extract)}"
+      "#{__MODULE__}: Received event #{aggregate_start()}: #{inspect(aggregate)}"
     end)
 
-    Aggregate.Feed.Supervisor.start_child(extract)
-
-    identifier(extract)
-    |> Aggregate.ViewState.Extractions.persist(extract)
+    Aggregate.Feed.Supervisor.start_child(aggregate)
+    :discard
+    # identifier(aggregate)
+    # |> Aggregate.ViewState.Extractions.persist(aggregate_update)
   end
 
   def handle_event(%Brook.Event{type: aggregate_update(), data: %Aggregate.Update{} = update}) do

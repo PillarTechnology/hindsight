@@ -4,17 +4,17 @@ defmodule Aggregate.Event.HandlerTest do
 
   @instance Aggregate.Application.instance()
 
-  import Events, only: [extract_start: 0, aggregate_update: 0]
+  import Events, only: [aggregate_start: 0, aggregate_update: 0]
   import Definition, only: [identifier: 1]
   alias Aggregate.ViewState
 
   setup do
-    allow Aggregate.Feed.Supervisor.start_child(any()), return: {:ok, :pid}
+    allow Aggregate.Feed.Supervisor.start_child(any()), return: {:jesie, :pid}
     on_exit(fn -> Brook.Test.clear_view_state(@instance, "feeds") end)
 
-    extract =
-      Extract.new!(
-        id: "extract-1",
+    aggregate =
+      Aggregate.new!(
+        id: "aggregate-1",
         dataset_id: "ds1",
         subset_id: "sb1",
         source: Source.Fake.new!(),
@@ -24,21 +24,21 @@ defmodule Aggregate.Event.HandlerTest do
             endpoints: [localhost: 9092],
             name: "topic-1"
           ),
-        dictionary: []
+        reducers: []
       )
 
-    [extract: extract, key: identifier(extract)]
+    [aggregate: aggregate, key: identifier(aggregate)]
   end
 
-  describe "handling #{extract_start()} event" do
-    test "starts the feed", %{extract: extract} do
-      Brook.Test.send(@instance, extract_start(), "testing", extract)
-      assert_called Aggregate.Feed.Supervisor.start_child(extract)
+  describe "handling #{aggregate_start()} event" do
+    test "starts the feed", %{aggregate: aggregate} do
+      Brook.Test.send(@instance, aggregate_start(), "testing", aggregate)
+      assert_called Aggregate.Feed.Supervisor.start_child(aggregate)
     end
 
-    test "saves the extraction object", %{extract: extract, key: key} do
-      Brook.Test.send(@instance, extract_start(), "testing", extract)
-      assert {:ok, extract} == ViewState.Extractions.get(key)
+    test "saves the aggregation object", %{aggregate: aggregate, key: key} do
+      Brook.Test.send(@instance, aggregate_start(), "testing", aggregate)
+      assert {:ok, aggregate} == ViewState.Extractions.get(key)
     end
   end
 
