@@ -295,4 +295,7 @@ config :service_aggregate, Aggregate.Application,
     dispatcher: Brook.Dispatcher.Noop
   ]
 
+
 config :service_aggregate, Aggregate.Feed.Producer, endpoints: kafka_endpoints
+config :service_aggregate, Aggregate.Feed.Consumer, [endpoints: kafka_endpoints, topic: "consumer-person-aggregate"]
+

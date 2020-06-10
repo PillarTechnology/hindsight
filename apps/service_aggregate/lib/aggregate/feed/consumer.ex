@@ -4,7 +4,11 @@ defmodule Aggregate.Feed.Consumer do
   `aggregate_update` event.
   """
   use GenStage
+  use Properties, otp_app: :service_aggregate
   require Logger
+
+  getter(:endpoints, required: true)
+  getter(:topic, required: true)
 
   @type init_opts :: [
           dataset_id: String.t(),
@@ -31,20 +35,8 @@ defmodule Aggregate.Feed.Consumer do
 
   @impl GenStage
   def handle_events(events, _from, state) do
-    Logger.debug(fn -> "#{__MODULE__}(#{inspect(self())}): received events #{inspect(events)}" end)
-
-    events
-    |> Enum.map(fn event ->
-      Aggregate.Update.new!(
-        dataset_id: state.dataset_id,
-        subset_id: state.subset_id,
-        stats: event
-      )
-    end)
-    |> Enum.each(fn update ->
-      Events.send_aggregate_update(@instance, "service_aggregate", update)
-    end)
-
+    Elsa.create_topic(endpoints(), topic())
+    Enum.map(events, fn e -> Jason.encode!(e) end) |> Enum.each(fn d -> Elsa.produce(endpoints(), topic(), d) end)
     {:noreply, [], state}
   end
 end
