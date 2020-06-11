@@ -10,10 +10,9 @@ defmodule Aggregate.Reducer.FrameReducer do
   end
 
   defimpl Aggregate.Reducer do
-    def init(t, _stats) do
-      # %{t | frame_people_count: Map.get(stats, "frame_people_count")}
-      IO.inspect(t, label: "frame_reducer.ex: init")
-      t
+    def init(t, stats) do
+#TODO: Fix me, i shouldnt be overriding this unless framepeoplecount is non nil/tmpty
+      %{t | frame_people_count: Map.get(stats, "frame_people_count", %{})}
     end
 
     def reduce(t, event) do
@@ -24,7 +23,6 @@ defmodule Aggregate.Reducer.FrameReducer do
       else
         t
       end
-      |> IO.inspect(label: "frame_redicer.ex: reduce")
     end
 
     def merge(t1, _t2) do

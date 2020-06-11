@@ -7,6 +7,7 @@ defmodule Aggregate.Feed.Flow do
   import Definition, only: [identifier: 2]
   alias Aggregate.Feed.Flow.State
 
+  # TODO: These should be on the aggregation event
   getter(:window_limit, default: 30)
   getter(:window_unit, default: :second)
 
@@ -42,16 +43,16 @@ defmodule Aggregate.Feed.Flow do
 
     # suspect
     reducers = Enum.map(reducers, &Aggregate.Reducer.init(&1, stats))
-    IO.inspect(reducers, label: "what my reducers is?????")
     # suspect
     {:ok, state} = State.start_link(reducers: reducers)
 
     from_specs
     |> Flow.from_specs()
     |> Flow.partition(window: window, stages: 1)
-    # suscpect, particularly State.get()
+    # TODO: suscpect, particularly State.get()
     |> Flow.reduce(fn -> State.get(state) end, &reduce/2)
     |> Flow.on_trigger(fn acc ->
+      ## TODO: This function body needs to be done differently
       if List.first(acc).frame_people_count == %{} do
         time = DateTime.utc_now() |> DateTime.to_iso8601()
         {[%{timestamp: time, people_count: 0}], %{}}

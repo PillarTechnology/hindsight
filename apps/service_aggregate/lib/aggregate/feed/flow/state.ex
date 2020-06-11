@@ -1,4 +1,6 @@
 defmodule Aggregate.Feed.Flow.State do
+  # TODO: DO we use this
+
   @moduledoc """
   Simple state management functions for profiling `Flow`s.
   """

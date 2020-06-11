@@ -9,10 +9,10 @@ defmodule Aggregate.Reducer.Frame do
     classification_path = ["Classification"]
 
     reducer =
-      FrameReducer.new(
+      FrameReducer.new(%{
         sample_image_path: sample_image_path,
         classification_path: classification_path
-      )
+      })
 
     %{
       sample_image_path: sample_image_path,

@@ -39,81 +39,119 @@ defmodule Aggregate.Feed.FlowTest do
     dataset_id = "ds1"
     subset_id = "sb1"
 
-    reducers = [
-      Aggregate.Reducer.FrameReducer.new(
-        sample_image_path: [Access.key(:value), "SampleImage"],
-        classification_path: [Access.key(:value), "Classification"]
+    aggregate =
+      Aggregate.new!(
+        version: 1,
+        dataset_id: dataset_id,
+        subset_id: subset_id,
+        source:
+          Kafka.Topic.new!(endpoints: [localhost: 9092], name: "vaMicroEvents", partitions: 1),
+        destination:
+          Kafka.Topic.new!(
+            name: "consumer-person-aggregate",
+            endpoints: [localhost: 9092],
+            partitions: 1
+          ),
+        decoder: Decoder.JsonLines.new!([]),
+        dictionary: [
+          Dictionary.Type.String.new!(name: "EventID"),
+          Dictionary.Type.String.new!(name: "Timestamp"),
+          Dictionary.Type.String.new!(name: "Context"),
+          Dictionary.Type.Integer.new!(name: "Sequence"),
+          Dictionary.Type.String.new!(name: "Module"),
+          Dictionary.Type.List.new!(
+            name: "BoundingBox",
+            item_type: Dictionary.Type.Float.new!(name: "coordinate")
+          ),
+          Dictionary.Type.Float.new!(name: "Confidence"),
+          Dictionary.Type.List.new!(
+            name: "Classification",
+            item_type: Dictionary.Type.String.new!(name: "objectClassification")
+          ),
+          Dictionary.Type.String.new!(name: "SampleImage"),
+          Dictionary.Type.String.new!(name: "MessageType"),
+          Dictionary.Type.String.new!(name: "SampleObject")
+        ],
+        reducers: [
+          Aggregate.Reducer.FrameReducer.new(%{
+            sample_image_path: [Access.key(:value), "SampleImage"],
+            classification_path: [Access.key(:value), "Classification"]
+          })
+        ]
       )
-    ]
-
+    IO.inspect("About to create a supervisor")
     assert {:ok, _pid} =
              start_supervised(
                {Aggregate.Feed.Flow,
                 dataset_id: dataset_id,
                 subset_id: subset_id,
-                from_specs: [Aggregate.Simple.Producer],
+                from_specs: [{Aggregate.Simple.Producer, aggregate: aggregate}],
                 into_specs: [{Aggregate.Test.Consumer, pid: self()}],
-                reducers: reducers}
+                reducers: aggregate.reducers}
              )
 
+    IO.inspect("about to create some events")
     events =
       [246]
       |> Enum.map(&FrameEventGenerator.generate/1)
       |> Enum.map(&to_elsa_message/1)
 
-    Aggregate.Simple.Producer.inject_events(events)
+    events
+    |> IO.inspect(label: "sending events")
+    |> Aggregate.Simple.Producer.inject_events()
 
     assert_receive(
       {:event, %{timestamp: now_string, people_count: 1.0}},
       3_000
     )
 
-    more_events =
-      [247]
-      |> Enum.map(&FrameEventGenerator.generate/1)
-      |> Enum.map(&to_elsa_message/1)
+    # more_events =
+    #   [247]
+    #   |> Enum.map(&FrameEventGenerator.generate/1)
+    #   |> Enum.map(&to_elsa_message/1)
 
-    Aggregate.Simple.Producer.inject_events(more_events)
+    # Aggregate.Simple.Producer.inject_events(more_events)
 
-    assert_receive(
-      {:event, %{timestamp: now_string, people_count: 1.0}},
-      3_000
-    )
+    # assert_receive(
+    #   {:event, %{timestamp: now_string, people_count: 1.0}},
+    #   3_000
+    # )
   end
 
-  test "gets it initial state from brook" do
-    Brook.Test.with_event(@instance, fn ->
-      aggregate =
-        Aggregate.Update.new!(
-          dataset_id: "ds1",
-          subset_id: "sb1",
-          stats: %{"min" => 23, "max" => 52}
-        )
+  # TODO: Reimplement this when we want to do entire dataset profiling
+  # test "gets it initial state from brook" do
+  #   Brook.Test.with_event(@instance, fn ->
+  #     aggregate =
+  #       Aggregate.Update.new!(
+  #         dataset_id: "ds1",
+  #         subset_id: "sb1",
+  #         stats: %{"min" => 23, "max" => 52}
+  #       )
 
-      identifier(aggregate)
-      |> Aggregate.ViewState.Stats.persist(aggregate.stats)
-    end)
+  #     identifier(aggregate)
+  #     |> Aggregate.ViewState.Stats.persist(aggregate.stats)
+  #   end)
 
-    assert {:ok, _pid} =
-             start_supervised(
-               {Aggregate.Feed.Flow,
-                dataset_id: "ds1",
-                subset_id: "sb1",
-                from_specs: [Aggregate.Simple.Producer],
-                into_specs: [{Aggregate.Test.Consumer, pid: self()}],
-                reducers: [
-                  Aggregate.Reducer.MinMax.new(path: [Access.key(:value), "count"])
-                ]}
-             )
+  #   assert {:ok, _pid} =
+  #            start_supervised(
+  #              {Aggregate.Feed.Flow,
+  #               dataset_id: "ds1",
+  #               subset_id: "sb1",
+  #               from_specs: [Aggregate.Simple.Producer],
+  #               into_specs: [{Aggregate.Test.Consumer, pid: self()}],
+  #               reducers: [
+  #                 Aggregate.Reducer.MinMax.new(path: [Access.key(:value), "count"])
+  #               ]}
+  #            )
 
-    events = [
-      to_elsa_message(%{"name" => "bob", "count" => 5})
-    ]
+  #   events = [
+  #     to_elsa_message(%{"name" => "bob", "count" => 5})
+  #   ]
 
-    Aggregate.Simple.Producer.inject_events(events)
+  #   Aggregate.Simple.Producer.inject_events(events)
 
-    assert_receive {:event, %{"min" => 5, "max" => 52}}, 3_000
-  end
+  #   assert_receive {:event, %{"min" => 5, "max" => 52}}, 3_000
+  # end
 
   defp to_elsa_message(value) do
     %Elsa.Message{

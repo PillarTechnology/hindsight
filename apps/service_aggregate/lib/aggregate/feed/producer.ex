@@ -94,8 +94,6 @@ defmodule Aggregate.Feed.Producer do
         }
       )
 
-    IO.inspect(aggregate.destination, label: "starting up producer with destination: ")
-    # TODO: make sure this was the correct change
     {:ok, source_pid} = Source.start_link(aggregate.source, context)
 
     Logger.debug(fn ->

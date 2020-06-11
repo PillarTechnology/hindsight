@@ -35,6 +35,7 @@ defmodule Aggregate.Feed.Consumer do
 
   @impl GenStage
   def handle_events(events, _from, state) do
+    # TODO: This should use adestination and write to it instead
     Elsa.create_topic(endpoints(), topic())
 
     Enum.map(events, fn e -> Jason.encode!(e) end)
