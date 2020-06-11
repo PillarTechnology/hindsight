@@ -37,7 +37,10 @@ defmodule Aggregate.Feed.Consumer do
   def handle_events(events, _from, state) do
     IO.inspect("did we even try to send it")
     Elsa.create_topic(endpoints(), topic())
-    Enum.map(events, fn e -> Jason.encode!(e) end) |> Enum.each(fn d -> Elsa.produce(endpoints(), topic(), d) end)
+
+    Enum.map(events, fn e -> Jason.encode!(e) end)
+    |> Enum.each(fn d -> Elsa.produce(endpoints(), topic(), d) end)
+
     {:noreply, [], state}
   end
 end

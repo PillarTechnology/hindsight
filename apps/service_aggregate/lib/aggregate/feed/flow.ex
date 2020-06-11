@@ -40,22 +40,26 @@ defmodule Aggregate.Feed.Flow do
         {:ok, stats} -> stats
       end
 
-    reducers = Enum.map(reducers, &Aggregate.Reducer.init(&1, stats))  #suspect
+    # suspect
+    reducers = Enum.map(reducers, &Aggregate.Reducer.init(&1, stats))
     IO.inspect(reducers, label: "what my reducers is?????")
-    {:ok, state} = State.start_link(reducers: reducers)   #suspect
+    # suspect
+    {:ok, state} = State.start_link(reducers: reducers)
 
     from_specs
     |> Flow.from_specs()
     |> Flow.partition(window: window, stages: 1)
-    |> Flow.reduce(fn -> State.get(state) end, &reduce/2)   #suscpect, particularly State.get()
+    # suscpect, particularly State.get()
+    |> Flow.reduce(fn -> State.get(state) end, &reduce/2)
     |> Flow.on_trigger(fn acc ->
       if List.first(acc).frame_people_count == %{} do
-        time = DateTime.utc_now() |> DateTime.to_iso8601
+        time = DateTime.utc_now() |> DateTime.to_iso8601()
         {[%{timestamp: time, people_count: 0}], %{}}
       else
         {average_people_count(acc), %{}}
       end
       |> IO.inspect(label: "on trigger")
+
       # case State.merge(state, acc) do
       #   [] ->
       #     {[], %{}}
@@ -89,7 +93,7 @@ defmodule Aggregate.Feed.Flow do
     first_acc = List.first(acc)
     map = first_acc.frame_people_count
     total = Map.values(map) |> Enum.reduce(0, fn x, acc -> x + acc end)
-    time = DateTime.utc_now() |> DateTime.to_iso8601
-    [%{timestamp: time, people_count: (total / Enum.count(map))}]
+    time = DateTime.utc_now() |> DateTime.to_iso8601()
+    [%{timestamp: time, people_count: total / Enum.count(map)}]
   end
 end

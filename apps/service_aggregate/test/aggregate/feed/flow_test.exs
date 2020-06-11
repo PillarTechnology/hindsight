@@ -33,12 +33,17 @@ defmodule Aggregate.Feed.FlowTest do
     [now_string: now_string]
   end
 
-  test "aggregates message over a configured period and calls to configured reducers", %{now_string: now_string} do
+  test "aggregates message over a configured period and calls to configured reducers", %{
+    now_string: now_string
+  } do
     dataset_id = "ds1"
     subset_id = "sb1"
 
     reducers = [
-      Aggregate.Reducer.FrameReducer.new(sample_image_path: [Access.key(:value), "SampleImage"], classification_path: [Access.key(:value), "Classification"])
+      Aggregate.Reducer.FrameReducer.new(
+        sample_image_path: [Access.key(:value), "SampleImage"],
+        classification_path: [Access.key(:value), "Classification"]
+      )
     ]
 
     assert {:ok, _pid} =
@@ -51,7 +56,8 @@ defmodule Aggregate.Feed.FlowTest do
                 reducers: reducers}
              )
 
-    events = [246]
+    events =
+      [246]
       |> Enum.map(&FrameEventGenerator.generate/1)
       |> Enum.map(&to_elsa_message/1)
 
@@ -62,7 +68,8 @@ defmodule Aggregate.Feed.FlowTest do
       3_000
     )
 
-    more_events = [247]
+    more_events =
+      [247]
       |> Enum.map(&FrameEventGenerator.generate/1)
       |> Enum.map(&to_elsa_message/1)
 

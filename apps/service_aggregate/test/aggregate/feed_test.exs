@@ -1,63 +1,44 @@
 defmodule Aggregate.FeedTest do
   use ExUnit.Case
+  # use Placebo
 
-  describe "determine_reducers/1" do
-    test "should init a temporal reducer for a timestamp field" do
-      dictionary =
-        Dictionary.from_list([
-          Dictionary.Type.String.new!(name: "name"),
-          Dictionary.Type.Map.new!(
-            name: "map1",
-            dictionary: [
-              Dictionary.Type.Timestamp.new!(name: "deep-ts", format: "%Y")
-            ]
-          ),
-          Dictionary.Type.Timestamp.new!(name: "ts", format: "%Y")
-        ])
+  # setup do
+  #   aggregate =
+  #     Aggregate.new!(
+  #       id: "aggregate-1",
+  #       dataset_id: "ds1",
+  #       subset_id: "sb1",
+  #       source: Source.Fake.new!(),
+  #       decoder: Decoder.Noop.new(),
+  #       destination:
+  #         Kafka.Topic.new!(
+  #           endpoints: [localhost: 9092],
+  #           name: "topic-1"
+  #         ),
+  #       reducers: [
+  #         Aggregate.Reducer.FrameReducer.new(
+  #           classification_path: ["Classification"],
+  #           sample_image_path: ["SampleImage"]
+  #         )
+  #       ]
+  #     )
 
-      reducers = Aggregate.Feed.determine_reducers(dictionary, [], [])
+  #   [aggregate: aggregate]
+  # end
 
-      assert reducers == [
-               Aggregate.Reducer.TemporalRange.new(path: ["ts"])
-             ]
-    end
+  # test "Starts up a supervisor with flow children", %{aggregate: aggregate} do
+  #   expected_child =
+  #     {Aggregate.Feed.Flow,
+  #      dataset_id: aggregate.dataset_id,
+  #      subset_id: aggregate.subset_id,
+  #      from_specs: [{Aggregate.Feed.Producer, aggregate: aggregate}],
+  #      into_specs: [
+  #        {Aggregate.Feed.Consumer,
+  #         dataset_id: aggregate.dataset_id, subset_id: aggregate.subset_id}
+  #      ],
+  #      reducers: aggregate.reducers}
 
-    test "should init a temporal reducer from a nested timestamp field" do
-      dictionary =
-        Dictionary.from_list([
-          Dictionary.Type.String.new!(name: "name"),
-          Dictionary.Type.Map.new!(
-            name: "record1",
-            dictionary: [
-              Dictionary.Type.Map.new!(
-                name: "record2",
-                dictionary: [
-                  Dictionary.Type.Timestamp.new!(name: "ts", format: "%Y")
-                ]
-              )
-            ]
-          )
-        ])
+  #   Aggregate.Feed.init(aggregate: aggregate)
 
-      reducers = Aggregate.Feed.determine_reducers(dictionary, [], [])
-
-      assert reducers == [
-               Aggregate.Reducer.TemporalRange.new(path: ["record1", "record2", "ts"])
-             ]
-    end
-
-    test "should add bounding box when latitude and longitude field found" do
-      dictionary =
-        Dictionary.from_list([
-          Dictionary.Type.Longitude.new!(name: "long"),
-          Dictionary.Type.Latitude.new!(name: "lat")
-        ])
-
-      reducers = Aggregate.Feed.determine_reducers(dictionary, [], [])
-
-      assert reducers == [
-               Aggregate.Reducer.BoundingBox.new(longitude_path: ["long"], latitude_path: ["lat"])
-             ]
-    end
-  end
+  # end
 end

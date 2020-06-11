@@ -8,7 +8,7 @@ defmodule Aggregate.Init do
     supervisor: Aggregate.Feed.Supervisor
 
   def on_start(state) do
-    with {:ok, view_state} <- Aggregate.ViewState.Extractions.get_all() do
+    with {:ok, view_state} <- Aggregate.ViewState.Aggregations.get_all() do
       Enum.each(view_state, &Aggregate.Feed.Supervisor.start_child/1)
     end
 

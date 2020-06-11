@@ -13,51 +13,74 @@ defmodule Aggregate.InitTest do
   end
 
   test "starts all saved feeds" do
-    extract1 =
-      Extract.new!(
-        id: "extract1",
+    dictionary = [
+      Dictionary.Type.String.new!(name: "EventID"),
+      Dictionary.Type.String.new!(name: "Timestamp"),
+      Dictionary.Type.String.new!(name: "Context"),
+      Dictionary.Type.Integer.new!(name: "Sequence"),
+      Dictionary.Type.String.new!(name: "Module"),
+      Dictionary.Type.List.new!(
+        name: "BoundingBox",
+        item_type: Dictionary.Type.Float.new!(name: "coordinate")
+      ),
+      Dictionary.Type.Float.new!(name: "Confidence"),
+      Dictionary.Type.List.new!(
+        name: "Classification",
+        item_type: Dictionary.Type.String.new!(name: "objectClassification")
+      ),
+      Dictionary.Type.String.new!(name: "SampleImage"),
+      Dictionary.Type.String.new!(name: "MessageType"),
+      Dictionary.Type.String.new!(name: "SampleObject")
+    ]
+
+    aggregate1 =
+      Aggregate.new!(
+        id: "aggregate1",
         dataset_id: "ds1",
         subset_id: "sb1",
         source: Source.Fake.new!(),
         decoder: Decoder.Noop.new(),
-        dictioanry: [],
-        destination: Destination.Fake.new!()
+        dictionary: dictionary,
+        destination: Destination.Fake.new!(),
+        reducers: []
       )
 
-    extract2 =
-      Extract.new!(
-        id: "extract2",
+    aggregate2 =
+      Aggregate.new!(
+        id: "aggregate2",
         dataset_id: "ds2",
         subset_id: "sb2",
         source: Source.Fake.new!(),
         decoder: Decoder.Noop.new(),
-        dictioanry: [],
-        destination: Destination.Fake.new!()
+        dictionary: dictionary,
+        destination: Destination.Fake.new!(),
+        reducers: []
       )
 
-    extract3 =
-      Extract.new!(
-        id: "extract3",
+    aggregate3 =
+      Aggregate.new!(
+        id: "aggregate3",
         dataset_id: "ds3",
         subset_id: "sb3",
         source: Source.Fake.new!(),
         decoder: Decoder.Noop.new(),
-        dictioanry: [],
-        destination: Destination.Fake.new!()
+        dictionary: dictionary,
+        destination: Destination.Fake.new!(),
+        reducers: []
       )
 
     Brook.Test.with_event(@instance, fn ->
-      [extract1, extract2, extract3]
-      |> Enum.each(fn extract ->
-        identifier(extract)
-        |> Aggregate.ViewState.Extractions.persist(extract)
+      [aggregate1, aggregate2, aggregate3]
+      |> Enum.each(fn aggregate ->
+        identifier(aggregate)
+        |> Aggregate.ViewState.Aggregations.persist(aggregate)
       end)
     end)
 
     assert {:ok, :state} = Aggregate.Init.on_start(:state)
 
-    assert_called(Aggregate.Feed.Supervisor.start_child(extract1))
-    assert_called(Aggregate.Feed.Supervisor.start_child(extract2))
-    assert_called(Aggregate.Feed.Supervisor.start_child(extract3))
+    assert_called(Aggregate.Feed.Supervisor.start_child(aggregate1))
+    assert_called(Aggregate.Feed.Supervisor.start_child(aggregate2))
+    assert_called(Aggregate.Feed.Supervisor.start_child(aggregate3))
   end
 end

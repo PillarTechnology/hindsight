@@ -4,7 +4,7 @@ defmodule Aggregate.Feed.Producer do
   require Logger
 
   @type init_opts :: [
-          extract: Extract.t()
+          aggregate: Aggregate.t()
         ]
 
   getter(:dlq, default: Dlq)
@@ -48,8 +48,8 @@ defmodule Aggregate.Feed.Producer do
     Logger.debug(fn -> "#{__MODULE__}(#{inspect(self())}): init with #{inspect(opts)}" end)
     Process.flag(:trap_exit, true)
 
-    extract = Keyword.fetch!(opts, :extract)
-    send(self(), {:init, extract})
+    aggregate = Keyword.fetch!(opts, :aggregate)
+    send(self(), {:init, aggregate})
 
     {:producer,
      %{
@@ -79,21 +79,24 @@ defmodule Aggregate.Feed.Producer do
   end
 
   @impl GenStage
-  def handle_info({:init, extract}, state) do
+  def handle_info({:init, aggregate}, state) do
     context =
       Source.Context.new!(
-        dataset_id: extract.dataset_id,
-        subset_id: extract.subset_id,
+        dataset_id: aggregate.dataset_id,
+        subset_id: aggregate.subset_id,
         app_name: :service_aggregate,
-        dictionary: extract.dictionary,
+        dictionary: aggregate.dictionary,
+        reducers: aggregate.reducers,
         handler: Handler,
         assigns: %{
           producer: self(),
           dlq: dlq()
         }
       )
-    IO.inspect(extract.destination, label: "starting up producer with destination: ")
-    {:ok, source_pid} = Source.start_link(extract.source, context)   #TODO: make sure this was the correct change
+
+    IO.inspect(aggregate.destination, label: "starting up producer with destination: ")
+    # TODO: make sure this was the correct change
+    {:ok, source_pid} = Source.start_link(aggregate.source, context)
 
     Logger.debug(fn ->
       "#{__MODULE__}(#{inspect(self())}): started source : #{inspect(source_pid)}"

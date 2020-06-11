@@ -12,6 +12,26 @@ defmodule Aggregate.Event.HandlerTest do
     allow Aggregate.Feed.Supervisor.start_child(any()), return: {:ok, :pid}
     on_exit(fn -> Brook.Test.clear_view_state(@instance, "feeds") end)
 
+    dictionary = [
+      Dictionary.Type.String.new!(name: "EventID"),
+      Dictionary.Type.String.new!(name: "Timestamp"),
+      Dictionary.Type.String.new!(name: "Context"),
+      Dictionary.Type.Integer.new!(name: "Sequence"),
+      Dictionary.Type.String.new!(name: "Module"),
+      Dictionary.Type.List.new!(
+        name: "BoundingBox",
+        item_type: Dictionary.Type.Float.new!(name: "coordinate")
+      ),
+      Dictionary.Type.Float.new!(name: "Confidence"),
+      Dictionary.Type.List.new!(
+        name: "Classification",
+        item_type: Dictionary.Type.String.new!(name: "objectClassification")
+      ),
+      Dictionary.Type.String.new!(name: "SampleImage"),
+      Dictionary.Type.String.new!(name: "MessageType"),
+      Dictionary.Type.String.new!(name: "SampleObject")
+    ]
+
     aggregate =
       Aggregate.new!(
         id: "aggregate-1",
@@ -24,6 +44,7 @@ defmodule Aggregate.Event.HandlerTest do
             endpoints: [localhost: 9092],
             name: "topic-1"
           ),
+        dictionary: dictionary,
         reducers: []
       )
 

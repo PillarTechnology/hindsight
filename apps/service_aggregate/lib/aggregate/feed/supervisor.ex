@@ -9,13 +9,13 @@ defmodule Aggregate.Feed.Supervisor do
   import Definition, only: [identifier: 1]
 
   @impl Management.Supervisor
-  def say_my_name(%Extract{} = extract) do
-    identifier(extract)
+  def say_my_name(%Aggregate{} = aggregate) do
+    identifier(aggregate)
     |> Aggregate.Feed.Registry.via()
   end
 
   @impl Management.Supervisor
-  def on_start_child(%Extract{} = extract, name) do
-    {Aggregate.Feed, extract: extract, name: name}
+  def on_start_child(%Aggregate{} = aggregate, name) do
+    {Aggregate.Feed, aggregate: aggregate, name: name}
   end
 end

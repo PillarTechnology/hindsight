@@ -7,7 +7,7 @@ defmodule Aggregate.Feed do
 
   @type init_opts :: [
           name: GenServer.name(),
-          extract: Extract.t()
+          aggregate: Aggregate.t()
         ]
 
   @spec start_link(init_opts) :: GenServer.on_start()
@@ -18,90 +18,28 @@ defmodule Aggregate.Feed do
 
   @impl true
   def init(opts) do
-    extract = Keyword.fetch!(opts, :extract)
+    aggregate = Keyword.fetch!(opts, :aggregate)
 
     Logger.debug(fn ->
-      "#{__MODULE__}: Starting feed for #{inspect(extract)}"
-    end)
-
-    reducers = determine_reducers(extract.dictionary, [], [])
-
-    Logger.debug(fn ->
-      "#{__MODULE__}: Using reducers #{inspect(reducers)}"
+      "#{__MODULE__}: Starting feed for #{inspect(aggregate)}"
     end)
 
     children = [
-      {Aggregate.Feed.Flow,
-       dataset_id: extract.dataset_id,
-       subset_id: extract.subset_id,
-       from_specs: [
-         {Aggregate.Feed.Producer, extract: extract}
-       ],
-       into_specs: [
-         {Aggregate.Feed.Consumer, dataset_id: extract.dataset_id, subset_id: extract.subset_id}
-       ],
-       reducers: [Aggregate.Reducer.FrameReducer.new(classification_path: ["Classification"], sample_image_path: ["SampleImage"])]}
+      {
+        Aggregate.Feed.Flow,
+        dataset_id: aggregate.dataset_id,
+        subset_id: aggregate.subset_id,
+        from_specs: [
+          {Aggregate.Feed.Producer, aggregate: aggregate}
+        ],
+        into_specs: [
+          {Aggregate.Feed.Consumer,
+           dataset_id: aggregate.dataset_id, subset_id: aggregate.subset_id}
+        ],
+        reducers: aggregate.reducers
+      }
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
-  end
-
-  def determine_reducers([], reducers), do: reducers
-
-  def determine_reducers([{_, _} | _] = dictionaries, reducers) do
-    Enum.reduce(dictionaries, reducers, fn {dictionary, path}, acc ->
-      determine_reducers(dictionary, acc, path)
-    end)
-  end
-
-  def determine_reducers(dictionary, reducers, path) do
-    reducers =
-      [Aggregate.Reducer.TemporalRange, Aggregate.Reducer.BoundingBox]
-      |> Enum.reduce(reducers, &maybe_add_reducers(&2, &1, dictionary, path))
-      |> List.flatten()
-
-    dictionaries =
-      Enum.filter(dictionary, fn %type{} -> type == Dictionary.Type.Map end)
-      |> Enum.map(fn map -> {map.dictionary, path ++ [map.name]} end)
-
-    determine_reducers(dictionaries, reducers)
-  end
-
-  defp maybe_add_reducers(reducers, reducer, dictionary, path) do
-    case includes_reducer?(reducers, reducer) do
-      true -> reducers
-      false -> reducers ++ create_reducers(reducer, dictionary, path)
-    end
-  end
-
-  defp create_reducers(Aggregate.Reducer.BoundingBox, dictionary, path) do
-    longitude = Enum.find(dictionary, fn %type{} -> type == Dictionary.Type.Longitude end)
-    latitude = Enum.find(dictionary, fn %type{} -> type == Dictionary.Type.Latitude end)
-
-    case {longitude, latitude} do
-      {long, lat} when long != nil and lat != nil ->
-        Aggregate.Reducer.BoundingBox.new(
-          longitude_path: path ++ [long.name],
-          latitude_path: path ++ [lat.name]
-        )
-        |> List.wrap()
-
-      _ ->
-        []
-    end
-  end
-
-  defp create_reducers(Aggregate.Reducer.TemporalRange, dictionary, path) do
-    case Enum.find(dictionary, fn %type{} -> type == Dictionary.Type.Timestamp end) do
-      nil ->
-        []
-
-      field ->
-        [Aggregate.Reducer.TemporalRange.new(path: path ++ [field.name])]
-    end
-  end
-
-  defp includes_reducer?(reducers, reducer) do
-    Enum.any?(reducers, fn %struct{} -> struct == reducer end)
   end
 end

@@ -18,6 +18,7 @@ defmodule Aggregate do
           source: Source.t(),
           decoder: Decoder.t(),
           destination: Destination.t(),
+          dictionary: Dictionary.t(),
           reducers: List.t()
         }
 
@@ -28,7 +29,15 @@ defmodule Aggregate do
             source: nil,
             decoder: nil,
             destination: nil,
+            dictionary: Dictionary.from_list([]),
             reducers: nil
+
+  def on_new(%{dictionary: list} = aggregate) when is_list(list) do
+    Map.put(aggregate, :dictionary, Dictionary.from_list(list))
+    |> Ok.ok()
+  end
+
+  def on_new(aggregate), do: Ok.ok(aggregate)
 end
 
 defmodule Aggregate.V1 do
@@ -45,6 +54,7 @@ defmodule Aggregate.V1 do
       source: impl_of(Source),
       decoder: impl_of(Decoder),
       destination: impl_of(Destination),
+      dictionary: of_struct(Dictionary.Impl),
       reducers: spec(is_list())
     })
   end
