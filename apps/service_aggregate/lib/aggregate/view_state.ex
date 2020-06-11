@@ -1,13 +1,13 @@
 defmodule Aggregate.ViewState do
   @moduledoc false
 
-  defmodule Extractions do
+  defmodule Aggregations do
     @moduledoc """
     State management functions for events.
     """
     use Management.ViewState,
       instance: Aggregate.Application.instance(),
-      collection: "feeds"
+      collection: "aggregations"
   end
 
   defmodule Stats do

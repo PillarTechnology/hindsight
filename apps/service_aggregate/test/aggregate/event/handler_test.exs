@@ -9,7 +9,7 @@ defmodule Aggregate.Event.HandlerTest do
   alias Aggregate.ViewState
 
   setup do
-    allow Aggregate.Feed.Supervisor.start_child(any()), return: {:jesie, :pid}
+    allow Aggregate.Feed.Supervisor.start_child(any()), return: {:ok, :pid}
     on_exit(fn -> Brook.Test.clear_view_state(@instance, "feeds") end)
 
     aggregate =
@@ -38,7 +38,7 @@ defmodule Aggregate.Event.HandlerTest do
 
     test "saves the aggregation object", %{aggregate: aggregate, key: key} do
       Brook.Test.send(@instance, aggregate_start(), "testing", aggregate)
-      assert {:ok, aggregate} == ViewState.Extractions.get(key)
+      assert {:ok, aggregate} == ViewState.Aggregations.get(key)
     end
   end
 

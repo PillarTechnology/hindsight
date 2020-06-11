@@ -17,9 +17,9 @@ defmodule Aggregate.Event.Handler do
     end)
 
     Aggregate.Feed.Supervisor.start_child(aggregate)
-    :discard
-    # identifier(aggregate)
-    # |> Aggregate.ViewState.Extractions.persist(aggregate_update)
+
+    identifier(aggregate)
+    |> Aggregate.ViewState.Aggregations.persist(aggregate)
   end
 
   def handle_event(%Brook.Event{type: aggregate_update(), data: %Aggregate.Update{} = update}) do
