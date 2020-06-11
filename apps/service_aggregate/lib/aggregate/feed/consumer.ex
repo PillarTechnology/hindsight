@@ -35,7 +35,6 @@ defmodule Aggregate.Feed.Consumer do
 
   @impl GenStage
   def handle_events(events, _from, state) do
-    IO.inspect("did we even try to send it")
     Elsa.create_topic(endpoints(), topic())
 
     Enum.map(events, fn e -> Jason.encode!(e) end)

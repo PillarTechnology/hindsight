@@ -10,14 +10,14 @@ defmodule Aggregate.Event.Handler do
 
   def handle_event(%Brook.Event{
         type: aggregate_start(),
-        data: %Aggregate{destination: %Kafka.Topic{}} = aggregate
+        data: %Aggregate{} = aggregate
       }) do
+
     Logger.debug(fn ->
       "#{__MODULE__}: Received event #{aggregate_start()}: #{inspect(aggregate)}"
     end)
 
     Aggregate.Feed.Supervisor.start_child(aggregate)
-
     identifier(aggregate)
     |> Aggregate.ViewState.Aggregations.persist(aggregate)
   end

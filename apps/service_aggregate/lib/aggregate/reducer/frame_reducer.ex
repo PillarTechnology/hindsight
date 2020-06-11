@@ -3,8 +3,8 @@ defmodule Aggregate.Reducer.FrameReducer do
 
   def new(opts) do
     %__MODULE__{
-      sample_image_path: Keyword.fetch!(opts, :sample_image_path),
-      classification_path: Keyword.fetch!(opts, :classification_path),
+      sample_image_path: Map.get(opts, :sample_image_path, []),
+      classification_path: Map.get(opts, :classification_path, []),
       frame_people_count: %{}
     }
   end
