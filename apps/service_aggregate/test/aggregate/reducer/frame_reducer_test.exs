@@ -23,15 +23,42 @@ defmodule Aggregate.Reducer.Frame do
 
   describe "init/2" do
     test "reads state from map", %{reducer: reducer} do
-      t = %{
+      initial_stats = %{
+        "sample_image_path" => ["value", "sampleImage"],
+        "classification_path" => ["value", "Classification"],
         "frame_people_count" => %{
           "SampleImage1234" => 15,
           "SampleImage5678" => 37
         }
       }
 
-      output = Aggregate.Reducer.init(reducer, t)
-      assert output.frame_people_count == Map.get(t, "frame_people_count")
+      output = Aggregate.Reducer.init(reducer, initial_stats)
+      assert output.frame_people_count == Map.get(initial_stats, "frame_people_count")
+    end
+
+    test "Frame people count remains an empty map even when t is passed in as nil", %{
+      reducer: reducer
+    } do
+      initial_stats = %{
+        "sample_image_path" => ["value", "sampleImage"],
+        "classification_path" => ["value", "Classification"],
+        "frame_people_count" => nil
+      }
+
+      output = Aggregate.Reducer.init(reducer, initial_stats)
+      assert output.frame_people_count == %{}
+    end
+
+    test "Frame people count remains an empty map even when t doesn't have a frame people count",
+         %{reducer: reducer} do
+      initial_stats = %{}
+      output = Aggregate.Reducer.init(reducer, initial_stats)
+
+      assert output == %FrameReducer{
+               sample_image_path: reducer.sample_image_path,
+               classification_path: reducer.classification_path,
+               frame_people_count: %{}
+             }
     end
   end
 
@@ -100,5 +127,7 @@ defmodule Aggregate.Reducer.Frame do
 
       assert output == reducer
     end
+  end
+  describe "to_event_fields/1" do
   end
 end

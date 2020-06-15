@@ -10,8 +10,11 @@ defmodule Aggregate.Reducer.FrameReducer do
   end
 
   defimpl Aggregate.Reducer do
+    def init(t, %{"frame_people_count" => nil}) do
+      %{t | frame_people_count: %{}}
+    end
+
     def init(t, stats) do
-#TODO: Fix me, i shouldnt be overriding this unless framepeoplecount is non nil/tmpty
       %{t | frame_people_count: Map.get(stats, "frame_people_count", %{})}
     end
 
@@ -29,7 +32,7 @@ defmodule Aggregate.Reducer.FrameReducer do
       t1
     end
 
-    def to_event_fields(_t) do
+    def to_event_fields(reducer) do
       []
     end
   end

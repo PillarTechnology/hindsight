@@ -2,9 +2,10 @@ defmodule AggregateTest do
   use ExUnit.Case
   use Divo
   use Annotated.Retry
+  import AssertAsync
   require Temp.Env
 
-  import Events, only: [aggregate_update: 0, extract_start: 0]
+  import Events, only: [aggregate_update: 0, aggregate_start: 0]
 
   @instance Aggregate.Application.instance()
 
@@ -22,120 +23,66 @@ defmodule AggregateTest do
   ])
 
   @tag timeout: :infinity
-  test "will aggregate a dataset" do
-    extract =
-      Extract.new!(
-        id: "extract-1",
-        dataset_id: "ds1",
-        subset_id: "sb1",
-        source: Source.Fake.new!(),
-        decoder: Decoder.Noop.new(),
+  test "will aggregate a video frame dataset" do
+    aggregate =
+      Aggregate.new!(
+        version: 1,
+        dataset_id: "vasp-datasetid",
+        subset_id: "vasp-subset",
+        source:
+          Kafka.Topic.new!(endpoints: [localhost: 9092], name: "vaMicroEvents", partitions: 1),
         destination:
           Kafka.Topic.new!(
+            name: "consumer-person-aggregate",
             endpoints: [localhost: 9092],
-            name: "topic-ds1"
+            partitions: 1
           ),
+        decoder: Decoder.JsonLines.new!([]),
         dictionary: [
-          Dictionary.Type.String.new!(name: "name"),
-          Dictionary.Type.Timestamp.new!(name: "ts", format: "%Y"),
-          Dictionary.Type.Longitude.new!(name: "longy"),
-          Dictionary.Type.Latitude.new!(name: "latty")
+          Dictionary.Type.String.new!(name: "EventID"),
+          Dictionary.Type.String.new!(name: "Timestamp"),
+          Dictionary.Type.String.new!(name: "Context"),
+          Dictionary.Type.Integer.new!(name: "Sequence"),
+          Dictionary.Type.String.new!(name: "Module"),
+          Dictionary.Type.List.new!(
+            name: "BoundingBox",
+            item_type: Dictionary.Type.Float.new!(name: "coordinate")
+          ),
+          Dictionary.Type.Float.new!(name: "Confidence"),
+          Dictionary.Type.List.new!(
+            name: "Classification",
+            item_type: Dictionary.Type.String.new!(name: "objectClassification")
+          ),
+          Dictionary.Type.String.new!(name: "SampleImage"),
+          Dictionary.Type.String.new!(name: "MessageType"),
+          Dictionary.Type.String.new!(name: "SampleObject")
+        ],
+        reducers: [
+          Aggregate.Reducer.FrameReducer.new(%{
+            sample_image_path: ["SampleImage"],
+            classification_path: ["Classification"]
+          })
         ]
       )
 
-    Brook.Test.send(@instance, extract_start(), "testing", extract)
+    Brook.Test.send(@instance, aggregate_start(), "testing", aggregate)
 
-    wait_for_topic("topic-ds1")
+    wait_for_topic("vaMicroEvents")
 
-    messages =
-      [
-        %{
-          "name" => "joe",
-          "ts" => to_iso(~N[2010-01-01 05:06:07]),
-          "longy" => 3.5,
-          "latty" => 17.8
-        },
-        %{
-          "name" => "bob",
-          "ts" => to_iso(~N[2012-01-01 07:08:09]),
-          "longy" => 2.1,
-          "latty" => 15.0
-        },
-        %{
-          "name" => "sally",
-          "ts" => to_iso(~N[2012-02-02 11:10:09]),
-          "longy" => 2.3,
-          "latty" => 21.2
-        }
-      ]
-      |> Enum.map(&Jason.encode!/1)
+    messages = [
+      ~s({"MessageType": "1011", "SampleImage": "/ingestion/00AA00AA00AA00AA/frame/246", "Classification": ["person"], "SampleObject": "/ingestion/00AA00AA00AA00AA/frame/246/[0.7008,0.0090,0.7328,0.1168]", "BoundingBox": [0.7008, 0.0090, 0.7328, 0.1168], "Context": "00AA00AA00AA00AA", "Module": "4000", "Confidence": 0.6474, "Sequence": 0, "EventID": "63293442", "Timestamp": "2020-06-08T18:02:56.675309Z"}),
+      ~s({"MessageType": "1011", "SampleImage": "/ingestion/00AA00AA00AA00AA/frame/246", "Classification": ["person"], "SampleObject": "/ingestion/00AA00AA00AA00AA/frame/246/[0.7008,0.0090,0.7328,0.1168]", "BoundingBox": [0.7008, 0.0090, 0.7328, 0.1168], "Context": "00AA00AA00AA00AA", "Module": "4000", "Confidence": 0.6474, "Sequence": 0, "EventID": "63293442", "Timestamp": "2020-06-08T18:02:56.675309Z"}),
+      ~s({"MessageType": "1011", "SampleImage": "/ingestion/00AA00AA00AA00AA/frame/246", "Classification": ["person"], "SampleObject": "/ingestion/00AA00AA00AA00AA/frame/246/[0.7008,0.0090,0.7328,0.1168]", "BoundingBox": [0.7008, 0.0090, 0.7328, 0.1168], "Context": "00AA00AA00AA00AA", "Module": "4000", "Confidence": 0.6474, "Sequence": 0, "EventID": "63293442", "Timestamp": "2020-06-08T18:02:56.675309Z"})
+    ]
 
-    produce("topic-ds1", messages)
+    produce("vaMicroEvents", messages)
 
-    first = to_iso(~N[2010-01-01 05:06:07])
-    last = to_iso(~N[2012-02-02 11:10:09])
+    Process.sleep(11_000)
+    {:ok, _count, messages} = Elsa.fetch([localhost: 9092], "consumer-person-aggregate")
+    decoded = Enum.map(messages, fn message -> Jason.decode!(message.value) end)
+    assert Enum.any?(decoded, fn message -> message["people_count"] == 3 end)
 
-    assert_receive {:brook_event,
-                    %Brook.Event{
-                      type: aggregate_update(),
-                      data: %Aggregate.Update{
-                        dataset_id: "ds1",
-                        subset_id: "sb1",
-                        stats: %{
-                          "temporal_range" => %{
-                            "first" => ^first,
-                            "last" => ^last
-                          },
-                          "bounding_box" => [2.1, 15.0, 3.5, 21.2]
-                        }
-                      }
-                    }},
-                   20_000
-
-    messages =
-      [
-        %{
-          "name" => "joe",
-          "ts" => to_iso(~N[2011-01-01 05:06:07]),
-          "longy" => 7.1,
-          "latty" => 17.0
-        },
-        %{
-          "name" => "bob",
-          "ts" => to_iso(~N[2012-01-01 07:08:09]),
-          "longy" => 2.3,
-          "latty" => 18.0
-        },
-        %{
-          "name" => "sally",
-          "ts" => to_iso(~N[2014-02-02 11:10:09]),
-          "longy" => 5.0,
-          "latty" => 13.0
-        }
-      ]
-      |> Enum.map(&Jason.encode!/1)
-
-    produce("topic-ds1", messages)
-
-    first = to_iso(~N[2010-01-01 05:06:07])
-    last = to_iso(~N[2014-02-02 11:10:09])
-
-    assert_receive {:brook_event,
-                    %Brook.Event{
-                      type: aggregate_update(),
-                      data: %Aggregate.Update{
-                        dataset_id: "ds1",
-                        subset_id: "sb1",
-                        stats: %{
-                          "temporal_range" => %{
-                            "first" => ^first,
-                            "last" => ^last
-                          },
-                          "bounding_box" => [2.1, 13.0, 7.1, 21.2]
-                        }
-                      }
-                    }},
-                   20_000
+    # TODO: Maybe have this test that a second set of messages produces a second result
   end
 
   @retry with: constant_backoff(1_000) |> take(20)
@@ -148,6 +95,8 @@ defmodule AggregateTest do
 
   @retry with: constant_backoff(1_000) |> take(20)
   defp wait_for_topic(topic) do
+    IO.inspect(topic, label: "waiting for topic")
+
     case Elsa.topic?([localhost: 9092], topic) do
       true -> {:ok, true}
       false -> {:error, false}

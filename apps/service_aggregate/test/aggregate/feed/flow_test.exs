@@ -79,7 +79,9 @@ defmodule Aggregate.Feed.FlowTest do
           })
         ]
       )
+
     IO.inspect("About to create a supervisor")
+
     assert {:ok, _pid} =
              start_supervised(
                {Aggregate.Feed.Flow,
@@ -91,6 +93,7 @@ defmodule Aggregate.Feed.FlowTest do
              )
 
     IO.inspect("about to create some events")
+
     events =
       [246]
       |> Enum.map(&FrameEventGenerator.generate/1)
@@ -105,53 +108,18 @@ defmodule Aggregate.Feed.FlowTest do
       3_000
     )
 
-    # more_events =
-    #   [247]
-    #   |> Enum.map(&FrameEventGenerator.generate/1)
-    #   |> Enum.map(&to_elsa_message/1)
+    more_events =
+      [247]
+      |> Enum.map(&FrameEventGenerator.generate/1)
+      |> Enum.map(&to_elsa_message/1)
 
-    # Aggregate.Simple.Producer.inject_events(more_events)
+    Aggregate.Simple.Producer.inject_events(more_events)
 
-    # assert_receive(
-    #   {:event, %{timestamp: now_string, people_count: 1.0}},
-    #   3_000
-    # )
+    assert_receive(
+      {:event, %{timestamp: now_string, people_count: 1.0}},
+      3_000
+    )
   end
-
-  # TODO: Reimplement this when we want to do entire dataset profiling
-  # test "gets it initial state from brook" do
-  #   Brook.Test.with_event(@instance, fn ->
-  #     aggregate =
-  #       Aggregate.Update.new!(
-  #         dataset_id: "ds1",
-  #         subset_id: "sb1",
-  #         stats: %{"min" => 23, "max" => 52}
-  #       )
-
-  #     identifier(aggregate)
-  #     |> Aggregate.ViewState.Stats.persist(aggregate.stats)
-  #   end)
-
-  #   assert {:ok, _pid} =
-  #            start_supervised(
-  #              {Aggregate.Feed.Flow,
-  #               dataset_id: "ds1",
-  #               subset_id: "sb1",
-  #               from_specs: [Aggregate.Simple.Producer],
-  #               into_specs: [{Aggregate.Test.Consumer, pid: self()}],
-  #               reducers: [
-  #                 Aggregate.Reducer.MinMax.new(path: [Access.key(:value), "count"])
-  #               ]}
-  #            )
-
-  #   events = [
-  #     to_elsa_message(%{"name" => "bob", "count" => 5})
-  #   ]
-
-  #   Aggregate.Simple.Producer.inject_events(events)
-
-  #   assert_receive {:event, %{"min" => 5, "max" => 52}}, 3_000
-  # end
 
   defp to_elsa_message(value) do
     %Elsa.Message{

@@ -52,14 +52,15 @@ defmodule Aggregate.Feed.Flow do
     # TODO: suscpect, particularly State.get()
     |> Flow.reduce(fn -> State.get(state) end, &reduce/2)
     |> Flow.on_trigger(fn acc ->
+      ## TODO: acc.to_event_fields()
       ## TODO: This function body needs to be done differently
+      IO.inspect(acc, label: "acc is")
       if List.first(acc).frame_people_count == %{} do
         time = DateTime.utc_now() |> DateTime.to_iso8601()
         {[%{timestamp: time, people_count: 0}], %{}}
       else
         {average_people_count(acc), %{}}
       end
-      |> IO.inspect(label: "on trigger")
 
       # case State.merge(state, acc) do
       #   [] ->
